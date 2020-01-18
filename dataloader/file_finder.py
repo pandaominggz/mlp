@@ -9,7 +9,7 @@ class FileFinder(object):
         self.Type = Type
 
         self.dir_scene_flow_originals = '/media/daoming/GF/sceneFlow/originals/' + Type
-        self.dir_scene_flow_disparity = '/media/daoming/GF/sceneFlow/originals/' + Type
+        self.dir_scene_flow_disparity = '/media/daoming/GF/sceneFlow/disparity/' + Type
 
         self.paths_originals = []
         self.paths_originals_left = []
