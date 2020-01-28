@@ -15,7 +15,9 @@ class GCNet(nn.Module):
     def build_module(self):
         self.layer_dict = nn.ModuleDict()
         section1 = SectionOne(self.height, self.width, self.channels)
-        print(section1)
+        # print(section1)
+        section2 = SectionTwo(self.height, self.width, self.channels)
+        # print(section2)
 
     def forward(self, x):
         return x
@@ -92,3 +94,18 @@ class SectionOne(nn.Module):
 
         output = self.layer_dict['conv_1'].forward(output)
         return output
+
+
+class SectionTwo(nn.Module):
+    def __init__(self):
+        super(SectionTwo, self).__init__()
+        # initial something
+        self.build_module()
+
+    def build_module(self):
+        self.layer_dict = nn.ModuleDict()
+        x = torch.zeros((self.height, self.width))
+        return x
+
+    def forward(self, x):
+        return 0
