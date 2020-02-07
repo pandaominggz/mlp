@@ -31,11 +31,35 @@ class DataLoader(Dataset):
         disparity_right.close()
 
     def __getitem__(self, index):
+        # print(self.paths_originals_left[index])
+        # print(self.paths_originals_right[index])
+        # print(self.paths_disparity_left[index])
+        # print(self.paths_disparity_left[index])
+        # print(cv2.imread(self.paths_originals_left[index]))
+        # print("************************************")
+        if cv2.imread(self.paths_originals_left[index]) is None:
+            print(self.paths_originals_left[index])
+            print("*******paths_originals_left*********")
+
+        if cv2.imread(self.paths_originals_right[index]) is None:
+            print(self.paths_originals_right[index])
+            print("*******paths_originals_right*********")
+
+        if PFMReader(self.paths_disparity_left[index]).load() is None:
+            print(self.paths_disparity_left[index])
+            print("*******paths_disparity_left*********")
+
+        if PFMReader(self.paths_disparity_right[index]).load() is None:
+            print(self.paths_disparity_right[index])
+            print("*******paths_disparity_right*********")
+
         imageL = cv2.imread(self.paths_originals_left[index]).reshape(540, 960, 3)
         imageR = cv2.imread(self.paths_originals_right[index]).reshape(540, 960, 3)
 
-        disparityL = PFMReader(self.paths_disparity_left[index]).load().get_img()
-        disparityR = PFMReader(self.paths_disparity_left[index]).load().get_img()
+        # disparityL = PFMReader(self.paths_disparity_left[index]).load().get_img()
+        # disparityR = PFMReader(self.paths_disparity_right[index]).load().get_img()
+        disparityL = PFMReader(self.paths_disparity_left[index]).load()
+        disparityR = PFMReader(self.paths_disparity_right[index]).load()
 
         imageL = self.transform(imageL)
         imageR = self.transform(imageR)

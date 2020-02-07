@@ -3,24 +3,28 @@ import torch.nn as nn
 
 
 class GCNet(nn.Module):
-    def __init__(self, height, width, channels):
+    def __init__(self, height, width, channels, maxdisp):
         super(GCNet, self).__init__()
 
-        # initial something
         self.height = height
         self.width = width
         self.channels = channels
+        self.maxdisp = maxdisp
         self.build_module()
 
     def build_module(self):
         self.layer_dict = nn.ModuleDict()
-        section1 = SectionOne(self.height, self.width, self.channels)
-        section2 = SectionTwo(self.height, self.width, self.channels)
-        section3 = SectionThree(self.height, self.width, self.channels)
-        section4 = SectionFour(self.height, self.width, self.channels)
+        self.layer_dict['section_1'] = SectionOne(self.height, self.width, self.channels)
+        self.layer_dict['section_2'] = SectionTwo(self.height, self.width,self.maxdisp)
+        self.layer_dict['section_3'] = SectionThree(self.height, self.width, self.maxdisp)
+        self.layer_dict['section_4'] = SectionFour()
 
-    def forward(self, x):
-        return x
+    def forward(self, imgl, imgr):
+        imgl, imgr = self.layer_dict['section_1'].forward(imgl,imgr)
+        cost_volume = self.layer_dict['section_2'].forward(imgl,imgr)
+        out = self.layer_dict['section_3'].forward(cost_volume)
+        out = self.layer_dict['section_4'].forward(out)
+        return out
 
 
 class SectionOne(nn.Module):
@@ -31,28 +35,26 @@ class SectionOne(nn.Module):
         self.height = height
         self.width = width
         self.channels = channels
-        self.features = 32
-        self.num_resBlock = 8
         self.build_module()
 
     def build_module(self):
         self.layer_dict = nn.ModuleDict()
 
-        self.layer_dict['conv2d_0'] = nn.Conv2d(self.channels, self.features, (5, 5), 2, 2)
+        self.layer_dict['conv2d_0'] = nn.Conv2d(self.channels, 32, (5, 5), 2, 2)  # 1
         self.layer_dict['bn2d_0'] = nn.BatchNorm2d(32)
         self.layer_dict['relu2d_0'] = nn.ReLU()
-        self.resNetBlock()
-        self.layer_dict['conv2d_1'] = nn.Conv2d(self.features, self.features, (3, 3), 1, 1)
+        self.resNetBlock()  # 2-16
+        self.layer_dict['conv2d_1'] = nn.Conv2d(32, 32, (3, 3), 1, 1)  # 18
 
     def resNetBlock(self):
-        for i in range(self.num_resBlock * 2):
-            self.layer_dict['res_conv2d_' + i] = nn.Conv2d(self.features, self.features, (3, 3), 1, 1)
-            self.layer_dict['res_bn2d_' + i] = nn.BatchNorm2d(32)
+        for i in range(8 * 2):
+            self.layer_dict['res_conv2d_' + str(i)] = nn.Conv2d(32, 32, (3, 3), 1, 1)
+            self.layer_dict['res_bn2d_' + str(i)] = nn.BatchNorm2d(32)
 
             if i % 2 == 0:
-                self.layer_dict['res_relu2d_' + i] = nn.ReLU()
+                self.layer_dict['res_relu2d_' + str(i)] = nn.ReLU()
             else:
-                self.layer_dict['res_relu2d_' + i] = nn.ReLU()
+                self.layer_dict['res_relu2d_' + str(i)] = nn.ReLU()
 
     def forward(self, imgl, imgr):
         imgl = self.layer_dict['conv2d_0'].forward(imgl)
@@ -63,20 +65,20 @@ class SectionOne(nn.Module):
         imgr = self.layer_dict['relu2d_0'].forward(imgr)
 
         outputl, outputr = imgl, imgr
-        for i in range(self.num_resBlock * 2):
-            outputl = self.layer_dict['res_conv2d_' + i].forward(outputl)
-            outputr = self.layer_dict['res_conv2d_' + i].forward(outputr)
-            outputl = self.layer_dict['res_bn2d_' + i].forward(outputl)
-            outputr = self.layer_dict['res_bn2d_' + i].forward(outputr)
+        for i in range(8 * 2):
+            outputl = self.layer_dict['res_conv2d_' + str(i)].forward(outputl)
+            outputr = self.layer_dict['res_conv2d_' + str(i)].forward(outputr)
+            outputl = self.layer_dict['res_bn2d_' + str(i)].forward(outputl)
+            outputr = self.layer_dict['res_bn2d_' + str(i)].forward(outputr)
 
             if i % 2 == 0:
-                outputl = self.layer_dict['res_relu2d_' + i].forward(outputl)
-                outputr = self.layer_dict['res_relu2d_' + i].forward(outputr)
+                outputl = self.layer_dict['res_relu2d_' + str(i)].forward(outputl)
+                outputr = self.layer_dict['res_relu2d_' + str(i)].forward(outputr)
             else:
                 outputl = outputl + imgl
                 outputr = outputl + imgr
-                outputl = self.layer_dict['res_relu2d_' + i].forward(outputl)
-                outputr = self.layer_dict['res_relu2d_' + i].forward(outputr)
+                outputl = self.layer_dict['res_relu2d_' + str(i)].forward(outputl)
+                outputr = self.layer_dict['res_relu2d_' + str(i)].forward(outputr)
                 imgl = outputl
                 imgr = outputr
 
@@ -86,9 +88,10 @@ class SectionOne(nn.Module):
 
 
 class SectionTwo(nn.Module):
-    def __init__(self, maxdisp):
+    def __init__(self, height, width,maxdisp):
         super(SectionTwo, self).__init__()
-        # initial something
+        self.height = height
+        self.width = width
         self.maxdisp = maxdisp
 
     def cost_volume(self, imgl, imgr):
@@ -112,20 +115,21 @@ class SectionTwo(nn.Module):
 
 
 class SectionThree(nn.Module):
-    def __init__(self, input):
+    def __init__(self, height, width, maxdisp):
         super(SectionThree, self).__init__()
-        # initial something
-        self.input = input
+        self.height = height
+        self.width = width
+        self.maxdisp = maxdisp
         self.build_module()
 
     def build_module(self):
         self.layer_dict = nn.ModuleDict()
 
-        self.layer_dict['conv3d_0'] = nn.Conv3d(64, 32, (3, 3, 3), 1, 1)
+        self.layer_dict['conv3d_0'] = nn.Conv3d(64, 32, (3, 3, 3), 1, 1)  # 19
         self.layer_dict['bn3d_0'] = nn.BatchNorm3d(32)
         self.layer_dict['relu3d_0'] = nn.ReLU()
 
-        self.layer_dict['conv3d_1'] = nn.Conv3d(32, 32, (3, 3, 3), 1, 1)
+        self.layer_dict['conv3d_1'] = nn.Conv3d(32, 32, (3, 3, 3), 1, 1)  # 20
         self.layer_dict['bn3d_1'] = nn.BatchNorm3d(32)
         self.layer_dict['relu3d_1'] = nn.ReLU()
 
@@ -218,6 +222,7 @@ class SectionThree(nn.Module):
         x = self.layer_dict['bn3d_1'].forward(x)
         conv3d_20 = self.layer_dict['relu3d_1'].forward(x)
 
+        print(cost_volum.shape)
         conv3d_block_1 = self.layer_dict['conv3d_2'].forward(cost_volum)
         conv3d_block_1 = self.layer_dict['bn3d_2'].forward(conv3d_block_1)
         conv3d_block_1 = self.layer_dict['relu3d_2'].forward(conv3d_block_1)
@@ -280,7 +285,9 @@ class SectionThree(nn.Module):
         deconv3d = self.layer_dict['Tbn3d_1'].forward(deconv3d + conv3d_block_2)
         deconv3d = self.layer_dict['Trelu3d_1'].forward(deconv3d)
 
+        print(deconv3d.shape)
         deconv3d = self.layer_dict['Tconv3d_2'].forward(deconv3d)
+        print(conv3d_block_1.shape)
         deconv3d = self.layer_dict['Tbn3d_2'].forward(deconv3d + conv3d_block_1)
         deconv3d = self.layer_dict['Trelu3d_2'].forward(deconv3d)
 
@@ -295,16 +302,14 @@ class SectionThree(nn.Module):
 
 
 class SectionFour(nn.Module):
-    def __init__(self, input):
+    def __init__(self):
         super(SectionFour, self).__init__()
-        # initial something
-        self.input = input
         self.build_module()
 
-        def build_module(self):
-            self.layer_dict = nn.ModuleDict()
-            self.layer_dict['softMax'] = nn.Softmax()
+    def build_module(self):
+        self.layer_dict = nn.ModuleDict()
+        self.layer_dict['softMax'] = nn.Softmax()
 
-    def forward(self, input):
-        x = self.layer_dict['softMax'].forward(-input, 1)
+    def forward(self, x):
+        x = self.layer_dict['softMax'].forward(-x, 1)
         return x

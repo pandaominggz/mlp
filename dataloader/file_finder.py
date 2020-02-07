@@ -8,8 +8,8 @@ class FileFinder(object):
 
         self.Type = Type
 
-        self.dir_scene_flow_originals = '/media/daoming/GF/sceneFlow/originals/' + Type
-        self.dir_scene_flow_disparity = '/media/daoming/GF/sceneFlow/disparity/' + Type
+        self.dir_scene_flow_originals = '/media/daoming/GF/SSceneFlow/originals/' + Type
+        self.dir_scene_flow_disparity = '/media/daoming/GF/SSceneFlow/disparity/' + Type
 
         self.paths_originals = []
         self.paths_originals_left = []
@@ -45,6 +45,11 @@ class FileFinder(object):
         originals_right = open('./pkl/originals_right_' + self.Type + '.pkl', 'wb')
         disparity_left = open('./pkl/disparity_left_' + self.Type + '.pkl', 'wb')
         disparity_right = open('./pkl/disparity_right_' + self.Type + '.pkl', 'wb')
+        print(len(self.paths_originals_left))
+        print(len(self.paths_originals_right))
+        print(len(self.paths_disparity_left))
+        print(len(self.paths_disparity_right))
+
         pickle.dump(self.paths_originals_left, originals_left)
         pickle.dump(self.paths_originals_right, originals_right)
         pickle.dump(self.paths_disparity_left, disparity_left)

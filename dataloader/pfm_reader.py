@@ -38,6 +38,7 @@ class PFMReader(object):
             # loading the rest of lines
             self.img = np.fromfile(file, self.endian + 'f').reshape((self.height, self.width, self.channels))    # not sure what (self.endian + 'f') means
             # self.img = np.flipud(img)   # not sure why flipud
+            return self.img
 
     def get_img(self):
         return self.img
