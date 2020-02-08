@@ -2,7 +2,7 @@ from dataloader.data_loader import DataLoader as dL
 from torch.utils.data import DataLoader
 from torch.autograd import Variable
 from torchvision import transforms
-from Net.GCNet import GCNet
+from net.GCNet import GCNet
 from torch import optim
 import torch.nn as nn
 import numpy as np

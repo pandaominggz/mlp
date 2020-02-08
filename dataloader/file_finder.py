@@ -11,8 +11,11 @@ class FileFinder(object):
         # self.dir_scene_flow_originals = '/media/daoming/GF/SSceneFlow/originals/' + Type
         # self.dir_scene_flow_disparity = '/media/daoming/GF/SSceneFlow/disparity/' + Type
 
-        self.dir_scene_flow_originals = '/home/daoming/Documents/SSceneFlow/originals/' + Type
-        self.dir_scene_flow_disparity = '/home/daoming/Documents/SSceneFlow/disparity/' + Type
+        # self.dir_scene_flow_originals = '/home/daoming/Documents/SSceneFlow/originals/' + Type
+        # self.dir_scene_flow_disparity = '/home/daoming/Documents/SSceneFlow/disparity/' + Type
+
+        self.dir_scene_flow_originals = './trainingset/sceneFlow/originals/' + Type
+        self.dir_scene_flow_disparity = './trainingset/sceneFlow/disparity/' + Type
 
         self.paths_originals = []
         self.paths_originals_left = []
