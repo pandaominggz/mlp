@@ -58,13 +58,14 @@ class DataLoader(Dataset):
 
         # disparityL = PFMReader(self.paths_disparity_left[index]).load().get_img()
         # disparityR = PFMReader(self.paths_disparity_right[index]).load().get_img()
-        disparityL = PFMReader(self.paths_disparity_left[index]).load()
-        disparityR = PFMReader(self.paths_disparity_right[index]).load()
+        disparityL = PFMReader(self.paths_disparity_left[index]).load().transpose((2, 0, 1))
+        # disparityR = PFMReader(self.paths_disparity_right[index]).load()
 
         imageL = self.transform(imageL)
         imageR = self.transform(imageR)
 
-        return {'imgL': imageL, 'imgR': imageR, 'dispL': disparityL, 'dispR': disparityR}
+        # return {'imgL': imageL, 'imgR': imageR, 'dispL': disparityL, 'dispR': disparityR}
+        return {'imgL': imageL, 'imgR': imageR, 'dispL': disparityL}
 
     def __len__(self):
         return len(self.paths_originals_left)

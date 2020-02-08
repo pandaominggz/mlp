@@ -12,18 +12,36 @@ import os
 
 def main(setType, transform):
     if setType == 'train':
-        height = 540
-        width = 960
+        height = 288
+        width = 512
         channels = 3
-        maxdisp = 4
+        maxdisp = 32
         batch = 1
         epoch_total = 20
-        with torch.no_grad():
+        # with torch.no_grad():
+        #     GcNet = GCNet(height, width, channels, maxdisp)
+        #     net = GcNet.to(0)
+        #     data = DataLoader(dL(setType, transform), batch_size=batch, shuffle=True, num_workers=1)
+        # train(net, data, height, width,maxdisp, batch, epoch_total)
+        # GcNet = GCNet(height, width, channels, maxdisp)
+        # net = GcNet.to(0)
+        # data = DataLoader(dL(setType, transform), batch_size=batch, shuffle=True, num_workers=1)
+        # net = torch.nn.DataParallel(GcNet).cuda()
+        # train(net, data, height, width,maxdisp, batch, epoch_total)
+        try:
             GcNet = GCNet(height, width, channels, maxdisp)
             net = GcNet.to(0)
             data = DataLoader(dL(setType, transform), batch_size=batch, shuffle=True, num_workers=1)
             # net = torch.nn.DataParallel(GcNet).cuda()
-            train(net, data, height, width,maxdisp, batch, epoch_total)
+            train(net, data, height, width, maxdisp, batch, epoch_total)
+        except RuntimeError as exception:
+            if "out of memory" in str(exception):
+                if hasattr(torch.cuda, 'empty_cache'):
+                    torch.cuda.empty_cache()
+                    print(exception)
+            else:
+                raise exception
+
     elif setType == 'test':
         test()
 
@@ -51,20 +69,22 @@ def train(net, dataloader, height, width, maxdisp, batch_size, epoch_total):
         # for step in range(len(dataloader) - 1):
             print('----epoch:%d------step:%d------' % (epoch, step))
             data = next(data_iter)
-            # randomH = np.random.randint(0, 160)
-            # randomW = np.random.randint(0, 400)
-            # imageL = data['imgL'][:, :, randomH:(randomH + height), randomW:(randomW + width)]
-            # imageR = data['imgR'][:, :, randomH:(randomH + height), randomW:(randomW + width)]
-            # disL = data['dispL'][:, :, randomH:(randomH + height), randomW:(randomW + width)]
-            imageL = data['imgL']
-            imageR = data['imgR']
-            disL = data['dispL']
+            randomH = np.random.randint(0, 252)
+            randomW = np.random.randint(0, 448)
+            imageL = data['imgL'][:, :, randomH:(randomH + height), randomW:(randomW + width)]
+            imageR = data['imgR'][:, :, randomH:(randomH + height), randomW:(randomW + width)]
+            disL = data['dispL'][:, :, randomH:(randomH + height), randomW:(randomW + width)]
+            # imageL = data['imgL']
+            # imageR = data['imgR']
+            # disL = data['dispL']
             # imL.data.resize_(imageL.size()).copy_(imageL)
             # imR.data.resize_(imageR.size()).copy_(imageR)
             # dispL.data.resize_(disL.size()).copy_(disL)
             imL.resize_(imageL.size()).copy_(imageL)
             imR.resize_(imageR.size()).copy_(imageR)
             dispL.resize_(disL.size()).copy_(disL)
+            # print(imageL.shape)
+            # print(disL.shape)
             # normalize
             # imgL=normalizeRGB(imL)
             # imgR=normalizeRGB(imR)
@@ -108,5 +128,5 @@ def checkpoint(path):
 
 if __name__ == '__main__':
     transform_train = transforms.Compose(
-        [transforms.ToTensor(), transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))])
+        [transforms.ToTensor(),transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))])
     main('train', transform_train)

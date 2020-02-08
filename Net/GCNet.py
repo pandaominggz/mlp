@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 class GCNet(nn.Module):
@@ -9,7 +10,7 @@ class GCNet(nn.Module):
         self.height = height
         self.width = width
         self.channels = channels
-        self.maxdisp = maxdisp
+        self.maxdisp = int(maxdisp / 2)
         self.build_module()
 
     def build_module(self):
@@ -30,8 +31,6 @@ class GCNet(nn.Module):
 class SectionOne(nn.Module):
     def __init__(self, height, width, channels):
         super(SectionOne, self).__init__()
-
-        # initial something
         self.height = height
         self.width = width
         self.channels = channels
@@ -222,7 +221,6 @@ class SectionThree(nn.Module):
         x = self.layer_dict['bn3d_1'].forward(x)
         conv3d_20 = self.layer_dict['relu3d_1'].forward(x)
 
-        print(cost_volum.shape)
         conv3d_block_1 = self.layer_dict['conv3d_2'].forward(cost_volum)
         conv3d_block_1 = self.layer_dict['bn3d_2'].forward(conv3d_block_1)
         conv3d_block_1 = self.layer_dict['relu3d_2'].forward(conv3d_block_1)
@@ -285,17 +283,16 @@ class SectionThree(nn.Module):
         deconv3d = self.layer_dict['Tbn3d_1'].forward(deconv3d + conv3d_block_2)
         deconv3d = self.layer_dict['Trelu3d_1'].forward(deconv3d)
 
-        print(deconv3d.shape)
         deconv3d = self.layer_dict['Tconv3d_2'].forward(deconv3d)
-        print(conv3d_block_1.shape)
         deconv3d = self.layer_dict['Tbn3d_2'].forward(deconv3d + conv3d_block_1)
         deconv3d = self.layer_dict['Trelu3d_2'].forward(deconv3d)
 
         deconv3d = self.layer_dict['Tconv3d_3'].forward(deconv3d)
         deconv3d = self.layer_dict['Tbn3d_3'].forward(deconv3d + conv3d_20)
         deconv3d = self.layer_dict['Trelu3d_3'].forward(deconv3d)
+        print(deconv3d.shape)
 
-        deconv3d = self.layer_dict['Trelu3d_4'].forward(deconv3d)
+        deconv3d = self.layer_dict['Tconv3d_4'].forward(deconv3d)
         out = deconv3d.view(1, self.maxdisp * 2, self.height, self.width)
 
         return out
@@ -311,5 +308,7 @@ class SectionFour(nn.Module):
         self.layer_dict['softMax'] = nn.Softmax()
 
     def forward(self, x):
-        x = self.layer_dict['softMax'].forward(-x, 1)
+        # x = -x
+        # x = self.layer_dict['softMax'].forward(x)
+        prob = F.softmax(-x, 1)
         return x
