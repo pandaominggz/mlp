@@ -12,12 +12,13 @@ import os
 
 def main(setType, transform):
     if setType == 'train':
+        load_state = False
         height = 288
         width = 512
         channels = 3
         maxdisp = 32
         batch = 1
-        epoch_total = 20
+        epoch_total = 100
         # with torch.no_grad():
         #     GcNet = GCNet(height, width, channels, maxdisp)
         #     net = GcNet.to(0)
@@ -33,7 +34,7 @@ def main(setType, transform):
             net = GcNet.to(0)
             data = DataLoader(dL(setType, transform), batch_size=batch, shuffle=True, num_workers=1)
             # net = torch.nn.DataParallel(GcNet).cuda()
-            train(net, data, height, width, maxdisp, batch, epoch_total)
+            train(load_state, net, data, height, width, maxdisp, batch, epoch_total)
         except RuntimeError as exception:
             if "out of memory" in str(exception):
                 if hasattr(torch.cuda, 'empty_cache'):
@@ -46,7 +47,7 @@ def main(setType, transform):
         test()
 
 
-def train(net, dataloader, height, width, maxdisp, batch_size, epoch_total):
+def train(loadstate, net, dataloader, height, width, maxdisp, batch_size, epoch_total):
     loss_mul_list = []
     for d in range(maxdisp):
         loss_mul_temp = Variable(torch.Tensor(np.ones([batch_size, 1, height, width]) * d)).cuda()
@@ -58,6 +59,13 @@ def train(net, dataloader, height, width, maxdisp, batch_size, epoch_total):
     imR = Variable(torch.FloatTensor(1).cuda())
     dispL = Variable(torch.FloatTensor(1).cuda())
     start_epoch = 0
+    accu = 0
+    if loadstate==True:
+        checkpoint = torch.load('./checkpoint/ckpt.t7')
+        net.load_state_dict(checkpoint['net'])
+        start_epoch = checkpoint['epoch']
+        accu=checkpoint['accur']
+    print('startepoch:%d accuracy:%f' % (start_epoch, accu))
     for epoch in range(start_epoch, epoch_total):
         net.train()
         data_iter = iter(dataloader)
@@ -112,6 +120,7 @@ def train(net, dataloader, height, width, maxdisp, batch_size, epoch_total):
             acc_total += accuracy
             print('====accuracy for the result less than 3 pixels===:%f' % accuracy)
             print('====average accuracy for the result less than 3 pixels===:%f' % (acc_total / (step + 1)))
+
 
 
 def test():

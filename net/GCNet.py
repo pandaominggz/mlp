@@ -290,7 +290,6 @@ class SectionThree(nn.Module):
         deconv3d = self.layer_dict['Tconv3d_3'].forward(deconv3d)
         deconv3d = self.layer_dict['Tbn3d_3'].forward(deconv3d + conv3d_20)
         deconv3d = self.layer_dict['Trelu3d_3'].forward(deconv3d)
-        print(deconv3d.shape)
 
         deconv3d = self.layer_dict['Tconv3d_4'].forward(deconv3d)
         out = deconv3d.view(1, self.maxdisp * 2, self.height, self.width)
