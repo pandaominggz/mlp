@@ -1,5 +1,0 @@
-print('hello world !')
-print('mlp final coursework')
-print('commit from pandaoming')
-print('123')
-print("commit from mli test 2")

@@ -7,7 +7,10 @@ from torch import optim
 import torch.nn as nn
 import numpy as np
 import torch
-import os
+import cv2
+
+
+# import os
 
 
 def main(setType, transform):
@@ -17,8 +20,8 @@ def main(setType, transform):
         width = 512
         channels = 3
         maxdisp = 32
-        batch = 1
-        epoch_total = 100
+        batch = 4
+        epoch_total = 50
         # with torch.no_grad():
         #     GcNet = GCNet(height, width, channels, maxdisp)
         #     net = GcNet.to(0)
@@ -30,11 +33,12 @@ def main(setType, transform):
         # net = torch.nn.DataParallel(GcNet).cuda()
         # train(net, data, height, width,maxdisp, batch, epoch_total)
         try:
-            GcNet = GCNet(height, width, channels, maxdisp)
+            GcNet = GCNet(height, width, channels, maxdisp, batch)
             net = GcNet.to(0)
             data = DataLoader(dL(setType, transform), batch_size=batch, shuffle=True, num_workers=1)
             # net = torch.nn.DataParallel(GcNet).cuda()
-            train(load_state, net, data, height, width, maxdisp, batch, epoch_total)
+            # train(load_state, net, data, height, width, maxdisp, batch, epoch_total)
+            train(net, data, height, width, maxdisp, batch, epoch_total)
         except RuntimeError as exception:
             if "out of memory" in str(exception):
                 if hasattr(torch.cuda, 'empty_cache'):
@@ -47,7 +51,8 @@ def main(setType, transform):
         test()
 
 
-def train(loadstate, net, dataloader, height, width, maxdisp, batch_size, epoch_total):
+# def train(loadstate, net, dataloader, height, width, maxdisp, batch_size, epoch_total):
+def train(net, dataloader, height, width, maxdisp, batch_size, epoch_total):
     loss_mul_list = []
     for d in range(maxdisp):
         loss_mul_temp = Variable(torch.Tensor(np.ones([batch_size, 1, height, width]) * d)).cuda()
@@ -58,23 +63,24 @@ def train(loadstate, net, dataloader, height, width, maxdisp, batch_size, epoch_
     imL = Variable(torch.FloatTensor(1).cuda())
     imR = Variable(torch.FloatTensor(1).cuda())
     dispL = Variable(torch.FloatTensor(1).cuda())
+    loss_list = []
     start_epoch = 0
-    accu = 0
-    if loadstate==True:
-        checkpoint = torch.load('./checkpoint/ckpt.t7')
-        net.load_state_dict(checkpoint['net'])
-        start_epoch = checkpoint['epoch']
-        accu=checkpoint['accur']
-    print('startepoch:%d accuracy:%f' % (start_epoch, accu))
+    # accu = 0
+    # if loadstate==True:
+    #     checkpoint = torch.load('./checkpoint/ckpt.t7')
+    #     net.load_state_dict(checkpoint['net'])
+    #     start_epoch = checkpoint['epoch']
+    #     accu=checkpoint['accur']
+    # print('startepoch:%d accuracy:%f' % (start_epoch, accu))
     for epoch in range(start_epoch, epoch_total):
         net.train()
         data_iter = iter(dataloader)
 
-        print('\nEpoch: %d' % epoch)
+        # print('\nEpoch: %d' % epoch)
         train_loss = 0
         acc_total = 0
-        for step in range(len(dataloader)):
-        # for step in range(len(dataloader) - 1):
+        for step in range(len(data_iter)):
+            # for step in range(len(dataloader) - 1):
             print('----epoch:%d------step:%d------' % (epoch, step))
             data = next(data_iter)
             randomH = np.random.randint(0, 252)
@@ -121,21 +127,34 @@ def train(loadstate, net, dataloader, height, width, maxdisp, batch_size, epoch_
             print('====accuracy for the result less than 3 pixels===:%f' % accuracy)
             print('====average accuracy for the result less than 3 pixels===:%f' % (acc_total / (step + 1)))
 
+            # save
+            # if step % 100 == 0:
+            #     loss_list.append(train_loss / (step + 1))
+            if step == len(dataloader) - 1:
+                print('=======>saving model......')
+                # state={'net':net.state_dict(),'step':step,
+                #        'loss_list':loss_list,'epoch':epoch,'accur':acc_total}
+                # torch.save(state,'checkpoint/ckpt.t7')
+                im = result[0, :, :, :].data.cpu().numpy().astype('uint8')
+                im = np.transpose(im, (1, 2, 0))
+                cv2.imwrite('train_result'+ str(epoch)+'.png', im, [int(cv2.IMWRITE_PNG_COMPRESSION), 0])
+                gt = np.transpose(dispL[0, :, :, :].data.cpu().numpy(), (1, 2, 0))
+                cv2.imwrite('train_gt'+ str(epoch)+'.png', gt, [int(cv2.IMWRITE_PNG_COMPRESSION), 0])
 
 
 def test():
     pass
 
 
-def checkpoint(path):
-    if not os.path.exists('./checkpoint/ckpt.t7'):
-        checkpoint = torch.load('./checkpoint/ckpt.t7')
-        # net.load_state_dict(checkpoint['net'])
-        # start_epoch = checkpoint['epoch']
-        # accu = checkpoint['accur']
+# def checkpoint(path):
+#     if not os.path.exists('./checkpoint/ckpt.t7'):
+#         checkpoint = torch.load('./checkpoint/ckpt.t7')
+#         # net.load_state_dict(checkpoint['net'])
+#         # start_epoch = checkpoint['epoch']
+#         # accu = checkpoint['accur']
 
 
 if __name__ == '__main__':
     transform_train = transforms.Compose(
-        [transforms.ToTensor(),transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))])
+        [transforms.ToTensor(), transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))])
     main('train', transform_train)

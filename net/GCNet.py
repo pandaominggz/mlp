@@ -4,25 +4,26 @@ import torch.nn.functional as F
 
 
 class GCNet(nn.Module):
-    def __init__(self, height, width, channels, maxdisp):
+    def __init__(self, height, width, channels, maxdisp, batch):
         super(GCNet, self).__init__()
 
         self.height = height
         self.width = width
         self.channels = channels
         self.maxdisp = int(maxdisp / 2)
+        self.batch = batch
         self.build_module()
 
     def build_module(self):
         self.layer_dict = nn.ModuleDict()
         self.layer_dict['section_1'] = SectionOne(self.height, self.width, self.channels)
-        self.layer_dict['section_2'] = SectionTwo(self.height, self.width,self.maxdisp)
-        self.layer_dict['section_3'] = SectionThree(self.height, self.width, self.maxdisp)
+        self.layer_dict['section_2'] = SectionTwo(self.height, self.width, self.maxdisp, self.batch)
+        self.layer_dict['section_3'] = SectionThree(self.height, self.width, self.maxdisp, self.batch)
         self.layer_dict['section_4'] = SectionFour()
 
     def forward(self, imgl, imgr):
-        imgl, imgr = self.layer_dict['section_1'].forward(imgl,imgr)
-        cost_volume = self.layer_dict['section_2'].forward(imgl,imgr)
+        imgl, imgr = self.layer_dict['section_1'].forward(imgl, imgr)
+        cost_volume = self.layer_dict['section_2'].forward(imgl, imgr)
         out = self.layer_dict['section_3'].forward(cost_volume)
         out = self.layer_dict['section_4'].forward(out)
         return out
@@ -49,11 +50,11 @@ class SectionOne(nn.Module):
         for i in range(8 * 2):
             self.layer_dict['res_conv2d_' + str(i)] = nn.Conv2d(32, 32, (3, 3), 1, 1)
             self.layer_dict['res_bn2d_' + str(i)] = nn.BatchNorm2d(32)
-
-            if i % 2 == 0:
-                self.layer_dict['res_relu2d_' + str(i)] = nn.ReLU()
-            else:
-                self.layer_dict['res_relu2d_' + str(i)] = nn.ReLU()
+            self.layer_dict['res_relu2d_' + str(i)] = nn.ReLU()
+            # if i % 2 == 0:
+            #     self.layer_dict['res_relu2d_' + str(i)] = nn.ReLU()
+            # else:
+            #     self.layer_dict['res_relu2d_' + str(i)] = nn.ReLU()
 
     def forward(self, imgl, imgr):
         imgl = self.layer_dict['conv2d_0'].forward(imgl)
@@ -87,11 +88,12 @@ class SectionOne(nn.Module):
 
 
 class SectionTwo(nn.Module):
-    def __init__(self, height, width,maxdisp):
+    def __init__(self, height, width, maxdisp, batch):
         super(SectionTwo, self).__init__()
         self.height = height
         self.width = width
         self.maxdisp = maxdisp
+        self.batch = batch
 
     def cost_volume(self, imgl, imgr):
         xx_list = []
@@ -103,7 +105,8 @@ class SectionTwo(nn.Module):
             xx_temp = torch.cat((xleft, xright), 1)
             xx_list.append(xx_temp)
         xx = torch.cat(xx_list, 1)
-        xx = xx.view(1, self.maxdisp, 64, int(self.height / 2), int(self.width / 2) + self.maxdisp)
+        # xx = xx.view(1, self.maxdisp, 64, int(self.height / 2), int(self.width / 2) + self.maxdisp)
+        xx = xx.view(self.batch, self.maxdisp, 64, int(self.height / 2), int(self.width / 2) + self.maxdisp)
         xx0 = xx.permute(0, 2, 1, 3, 4)
         xx0 = xx0[:, :, :, :, :int(self.width / 2)]
         return xx0
@@ -114,11 +117,12 @@ class SectionTwo(nn.Module):
 
 
 class SectionThree(nn.Module):
-    def __init__(self, height, width, maxdisp):
+    def __init__(self, height, width, maxdisp, batch):
         super(SectionThree, self).__init__()
         self.height = height
         self.width = width
         self.maxdisp = maxdisp
+        self.batch = batch
         self.build_module()
 
     def build_module(self):
@@ -292,7 +296,8 @@ class SectionThree(nn.Module):
         deconv3d = self.layer_dict['Trelu3d_3'].forward(deconv3d)
 
         deconv3d = self.layer_dict['Tconv3d_4'].forward(deconv3d)
-        out = deconv3d.view(1, self.maxdisp * 2, self.height, self.width)
+        # out = deconv3d.view(self.batch, self.maxdisp * 2, self.height, self.width)
+        out = deconv3d.view(self.batch, 1, self.maxdisp * 2, self.height, self.width)
 
         return out
 
@@ -300,14 +305,16 @@ class SectionThree(nn.Module):
 class SectionFour(nn.Module):
     def __init__(self):
         super(SectionFour, self).__init__()
-        self.build_module()
 
-    def build_module(self):
-        self.layer_dict = nn.ModuleDict()
-        self.layer_dict['softMax'] = nn.Softmax()
+    #     self.build_module()
+    #
+    # def build_module(self):
+    #     self.layer_dict = nn.ModuleDict()
+    #     self.layer_dict['softMax'] = nn.Softmax()
 
     def forward(self, x):
         # x = -x
         # x = self.layer_dict['softMax'].forward(x)
         prob = F.softmax(-x, 1)
-        return x
+        print('prob shape:', prob.shape)
+        return prob
