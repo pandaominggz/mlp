@@ -140,6 +140,10 @@ def train(net, dataloader, height, width, maxdisp, batch_size, epoch_total):
                 cv2.imwrite('train_result'+ str(epoch)+'.png', im, [int(cv2.IMWRITE_PNG_COMPRESSION), 0])
                 gt = np.transpose(dispL[0, :, :, :].data.cpu().numpy(), (1, 2, 0))
                 cv2.imwrite('train_gt'+ str(epoch)+'.png', gt, [int(cv2.IMWRITE_PNG_COMPRESSION), 0])
+            if epoch == epoch_total-1 and step == len(data_iter)-1:
+                print('=======>saving model......')
+                state = {'net': net.state_dict()}
+                torch.save(state, './checkpoint/ckpt.t7')
 
 
 def test():

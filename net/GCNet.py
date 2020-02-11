@@ -297,7 +297,8 @@ class SectionThree(nn.Module):
 
         deconv3d = self.layer_dict['Tconv3d_4'].forward(deconv3d)
         # out = deconv3d.view(self.batch, self.maxdisp * 2, self.height, self.width)
-        out = deconv3d.view(self.batch, 1, self.maxdisp * 2, self.height, self.width)
+        # out = deconv3d.view(self.batch, 1, self.maxdisp * 2, self.height, self.width)
+        out = deconv3d.view(self.batch,self.maxdisp * 2, self.height, self.width)
 
         return out
 
@@ -316,5 +317,5 @@ class SectionFour(nn.Module):
         # x = -x
         # x = self.layer_dict['softMax'].forward(x)
         prob = F.softmax(-x, 1)
-        print('prob shape:', prob.shape)
+        # print('prob shape:', prob.shape)
         return prob
