@@ -149,7 +149,7 @@ def train(net, dataloader, height, width, maxdisp, batch_size, epoch_total):
                     print('=======>saving model......')
                     date = str(datetime.datetime.now())
                     state = {'net': net.state_dict()}
-                    fileName = './checkpoint/ckpt'+date[0:19]+'.t7'
+                    fileName = './checkpoint/ckpt_'+date[0:19]+'.t7'
                     torch.save(state, fileName)
 
 
