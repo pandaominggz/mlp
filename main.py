@@ -6,7 +6,9 @@ from net.GCNet import GCNet
 from torch import optim
 import torch.nn as nn
 import numpy as np
+import datetime
 import torch
+import time
 import cv2
 
 
@@ -32,6 +34,7 @@ def main(setType, transform):
         # data = DataLoader(dL(setType, transform), batch_size=batch, shuffle=True, num_workers=1)
         # net = torch.nn.DataParallel(GcNet).cuda()
         # train(net, data, height, width,maxdisp, batch, epoch_total)
+        start = time.clock()
         try:
             GcNet = GCNet(height, width, channels, maxdisp, batch)
             net = GcNet.to(0)
@@ -46,6 +49,8 @@ def main(setType, transform):
                     print(exception)
             else:
                 raise exception
+        end = time.clock()
+        print("running time:",(end - start))
 
     elif setType == 'test':
         test()
@@ -142,8 +147,10 @@ def train(net, dataloader, height, width, maxdisp, batch_size, epoch_total):
                 cv2.imwrite('train_gt'+ str(epoch)+'.png', gt, [int(cv2.IMWRITE_PNG_COMPRESSION), 0])
                 if epoch == epoch_total-1:
                     print('=======>saving model......')
+                    date = str(datetime.datetime.now())
                     state = {'net': net.state_dict()}
-                    torch.save(state, './checkpoint/ckpt.t7')
+                    fileName = './checkpoint/ckpt'+date[0:19]+'.t7'
+                    torch.save(state, fileName)
 
 
 def test():
